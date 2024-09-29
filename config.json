@@ -1,0 +1,4 @@
+{
+    "cert": "./cert/certificate.crt",
+    "key": "./cert/private.key"
+}

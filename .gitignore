@@ -1,0 +1,6 @@
+/target
+
+/cert/*
+!/cert/gen.sh
+
+xbb.db3

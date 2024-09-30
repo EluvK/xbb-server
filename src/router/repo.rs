@@ -3,7 +3,7 @@ use salvo::{handler, Request, Router};
 pub fn router() -> Router {
     Router::new()
         .get(list_repo)
-        .post(post_repo)
+        .post(new_repo)
         .push(Router::with_path("<repo_id>").get(get_repo))
 }
 
@@ -19,6 +19,6 @@ async fn get_repo(req: &mut Request) -> String {
 }
 
 #[handler]
-async fn post_repo() -> &'static str {
+async fn new_repo() -> &'static str {
     "post repo"
 }

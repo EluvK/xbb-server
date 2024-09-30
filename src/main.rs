@@ -1,7 +1,7 @@
 mod db;
+mod model;
 mod opt;
 mod router;
-mod model;
 
 use salvo::{
     conn::{
@@ -18,11 +18,11 @@ const DEFAULT_PORT: u16 = 15443;
 async fn main() -> anyhow::Result<()> {
     // read config.json file
     db::init_db()?;
-    let opt = std::fs::read_to_string("config.json")?;
+    let opt = std::fs::read_to_string("config.json").expect("cannot read config file");
     let config = serde_json::from_str::<opt::Config>(&opt)?;
     // read cert and key file
-    let cert = std::fs::read(&config.cert)?;
-    let key = std::fs::read(&config.key)?;
+    let cert = std::fs::read(&config.cert).expect("cannot read cert file");
+    let key = std::fs::read(&config.key).expect("cannot read key file");
 
     let port = config.port.unwrap_or(DEFAULT_PORT);
     let address = format!("0.0.0.0:{}", port);

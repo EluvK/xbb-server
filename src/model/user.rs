@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
 use rusqlite::params;
+use salvo::{async_trait, writing::Json, Writer};
 use serde::{Deserialize, Serialize};
 
-use crate::db::new_conn;
+use crate::{db::new_conn, error::ServiceResult};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct User {
@@ -27,7 +28,7 @@ impl User {
     }
 }
 
-pub fn add_user(user: &User) -> anyhow::Result<()> {
+pub fn add_user(user: &User) -> ServiceResult<()> {
     let conn = new_conn()?;
     conn.execute(
         "INSERT INTO user (id, name, created_at, updated_at, password) VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -40,6 +41,52 @@ pub fn add_user(user: &User) -> anyhow::Result<()> {
         ],
     )?;
     Ok(())
+}
+
+pub fn get_user_by_name(name: &str) -> ServiceResult<Option<User>> {
+    let conn = new_conn()?;
+    let mut stmt = conn.prepare("SELECT * FROM user WHERE name = ?1")?;
+    let mut rows = stmt.query(params![name])?;
+    let row = rows.next()?;
+    match row {
+        Some(row) => {
+            let user = User {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                created_at: row.get(2)?,
+                updated_at: row.get(3)?,
+                password: row.get(4)?,
+                avatar_url: row.get(5)?,
+            };
+            Ok(Some(user))
+        }
+        None => Ok(None),
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OpenApiNewUserRequest {
+    pub name: String,
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OpenApiGetUserResponse {
+    pub id: String,
+    pub name: String,
+    pub avatar_url: Option<String>,
+}
+
+#[async_trait]
+impl Writer for OpenApiGetUserResponse {
+    async fn write(
+        self,
+        _req: &mut salvo::Request,
+        _depot: &mut salvo::Depot,
+        res: &mut salvo::Response,
+    ) {
+        res.render(Json(&self));
+    }
 }
 
 #[cfg(test)]

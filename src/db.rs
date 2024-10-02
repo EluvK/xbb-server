@@ -1,6 +1,8 @@
 use rusqlite::Connection;
 
-pub fn new_conn() -> anyhow::Result<Connection> {
+use crate::error::ServiceResult;
+
+pub fn new_conn() -> ServiceResult<Connection> {
     Ok(Connection::open("xbb.db3")?)
 }
 

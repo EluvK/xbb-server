@@ -16,11 +16,14 @@ use crate::{
 pub struct UserValidator;
 
 impl BasicAuthValidator for UserValidator {
-    async fn validate(&self, username: &str, password: &str, _depot: &mut Depot) -> bool {
+    async fn validate(&self, username: &str, password: &str, depot: &mut Depot) -> bool {
         if let Ok(Some(user)) = get_user_by_name(username) {
-            return user.password == password;
+            if user.password == password {
+                depot.insert("current_user_id", user.id);
+                return true;
+            }
         }
-        return false;
+        false
     }
 }
 
@@ -50,7 +53,12 @@ async fn new_user(request: &mut Request, response: &mut Response) -> ServiceResu
 
 #[handler]
 async fn get_user(request: &mut Request) -> ServiceResult<OpenApiGetUserResponse> {
-    let name = request.params().get("name").unwrap();
+    let name = request
+        .params()
+        .get("name")
+        .ok_or(ServiceError::InternalServerError(
+            "user name not found".to_owned(),
+        ))?;
     let user =
         get_user_by_name(name)?.ok_or(ServiceError::NotFound("user not found".to_string()))?;
     Ok(OpenApiGetUserResponse {

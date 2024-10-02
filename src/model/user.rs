@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use rusqlite::params;
-use salvo::{async_trait, writing::Json, Writer};
+use salvo::{writing::Json, Scribe};
 use serde::{Deserialize, Serialize};
 
 use crate::{db::new_conn, error::ServiceResult};
@@ -77,14 +77,8 @@ pub struct OpenApiGetUserResponse {
     pub avatar_url: Option<String>,
 }
 
-#[async_trait]
-impl Writer for OpenApiGetUserResponse {
-    async fn write(
-        self,
-        _req: &mut salvo::Request,
-        _depot: &mut salvo::Depot,
-        res: &mut salvo::Response,
-    ) {
+impl Scribe for OpenApiGetUserResponse {
+    fn render(self, res: &mut salvo::Response) {
         res.render(Json(&self));
     }
 }

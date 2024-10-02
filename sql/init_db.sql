@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS "repo" (
     "name" TEXT NOT NULL,
     "owner" TEXT NOT NULL,
     "description" TEXT,
-    "last_updated" TEXT NOT NULL,
+    "created_at" TEXT NOT NULL,
+    "updated_at" TEXT NOT NULL,
     FOREIGN KEY("owner") REFERENCES "user"("id")
 );
 CREATE TABLE IF NOT EXISTS "post" (

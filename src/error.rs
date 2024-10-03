@@ -7,8 +7,8 @@ pub enum ServiceError {
     BadRequest(#[from] salvo::http::ParseError),
     // #[error("401, Unauthorized")]
     // Unauthorized,
-    // #[error("403, Forbidden")]
-    // Forbidden,
+    #[error("403, Forbidden")]
+    Forbidden(String),
     #[error("404, Not Found, {0}")]
     NotFound(String),
     #[error("409, Conflict, {0}")]
@@ -32,10 +32,10 @@ impl Writer for ServiceError {
             //     res.status_code(salvo::http::StatusCode::UNAUTHORIZED);
             //     res.render(Text::Plain("401, Unauthorized"));
             // }
-            // ServiceError::Forbidden => {
-            //     res.status_code(salvo::http::StatusCode::FORBIDDEN);
-            //     res.render(Text::Plain("403, Forbidden"));
-            // }
+            ServiceError::Forbidden(err) => {
+                res.status_code(salvo::http::StatusCode::FORBIDDEN);
+                res.render(Text::Plain(format!("403, Forbidden, {}", err)));
+            }
             ServiceError::NotFound(err) => {
                 res.status_code(salvo::http::StatusCode::NOT_FOUND);
                 res.render(Text::Plain(format!("404, Not Found, {}", err)));

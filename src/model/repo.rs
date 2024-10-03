@@ -3,7 +3,7 @@ use rusqlite::params;
 use salvo::{writing::Json, Scribe};
 use serde::{Deserialize, Serialize};
 
-use crate::{db::new_conn, error::ServiceResult};
+use crate::{db::new_conn, error::{ServiceError, ServiceResult}};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Repo {
@@ -81,6 +81,23 @@ pub fn get_repo_by_name(name: &str) -> ServiceResult<Option<Repo>> {
             Ok(Some(repo))
         }
         None => Ok(None),
+    }
+}
+
+pub fn check_repo_owner(repo_id: &str, owner_id: &str) -> ServiceResult<()> {
+    let conn = new_conn()?;
+    let mut stmt = conn.prepare("SELECT * FROM repo WHERE id = ?1")?;
+    let mut rows = stmt.query(params![repo_id])?;
+    let row = rows.next()?;
+    match row {
+        Some(row) => {
+            let owner: String = row.get(2)?;
+            if owner != owner_id {
+                return Err(ServiceError::Forbidden("forbidden".to_string()));
+            }
+            Ok(())
+        }
+        None => Err(ServiceError::NotFound("repo not found".to_string())),
     }
 }
 

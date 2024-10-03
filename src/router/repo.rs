@@ -7,6 +7,7 @@ use crate::{
         add_repo, get_repo_by_name, list_repos_by_owner_id, OpenApiGetRepoResponse,
         OpenApiListRepoResponse, OpenApiNewRepoRequest, Repo,
     },
+    router::utils::{get_current_user_id, get_req_path},
 };
 
 pub fn router() -> Router {
@@ -19,10 +20,8 @@ pub fn router() -> Router {
 #[handler]
 async fn list_repo(depot: &mut Depot) -> ServiceResult<OpenApiListRepoResponse> {
     info!("list repo");
-    let current_user_id = depot
-        .get::<String>("current_user_id")
-        .map_err(|err| ServiceError::InternalServerError(format!("{err:?}")))?;
-    let repos = list_repos_by_owner_id(&current_user_id)?;
+    let current_user_id = get_current_user_id(depot)?;
+    let repos = list_repos_by_owner_id(current_user_id)?;
     Ok(OpenApiListRepoResponse(
         repos.into_iter().map(|repo| repo.into()).collect(),
     ))
@@ -31,17 +30,9 @@ async fn list_repo(depot: &mut Depot) -> ServiceResult<OpenApiListRepoResponse> 
 #[handler]
 async fn get_repo(req: &mut Request, depot: &mut Depot) -> ServiceResult<OpenApiGetRepoResponse> {
     info!("get repo");
-    let repo_id = req
-        .params()
-        .get("repo_id")
-        .ok_or(ServiceError::InternalServerError(
-            "repo_id not found".to_owned(),
-        ))?;
-    let current_user_id = depot
-        .get::<String>("current_user_id")
-        .map_err(|err| ServiceError::InternalServerError(format!("{err:?}")))?;
-
-    let repos = list_repos_by_owner_id(&current_user_id)?;
+    let repo_id = get_req_path(req, "repo_id")?;
+    let current_user_id = get_current_user_id(depot)?;
+    let repos = list_repos_by_owner_id(current_user_id)?;
     repos
         .into_iter()
         .find(|repo| repo.id == *repo_id)
@@ -56,10 +47,7 @@ async fn new_repo(
     depot: &mut Depot,
 ) -> ServiceResult<OpenApiGetRepoResponse> {
     info!("new repo");
-    let current_user_id = depot
-        .get::<String>("current_user_id")
-        .map_err(|err| ServiceError::InternalServerError(format!("{err:?}")))?;
-
+    let current_user_id = get_current_user_id(depot)?;
     let req = request.parse_body::<OpenApiNewRepoRequest>().await?;
     info!("new repo {req:?}");
 

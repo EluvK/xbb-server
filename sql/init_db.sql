@@ -22,9 +22,9 @@ CREATE TABLE IF NOT EXISTS "post" (
     "content" TEXT NOT NULL,
     "created_at" TEXT NOT NULL,
     "updated_at" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
+    "author" TEXT NOT NULL,
     "repo_id" TEXT NOT NULL,
-    FOREIGN KEY("user_id") REFERENCES "user"("id"),
+    FOREIGN KEY("author") REFERENCES "user"("id"),
     FOREIGN KEY("repo_id") REFERENCES "repo"("id")
 );
 COMMIT;

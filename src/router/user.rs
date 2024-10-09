@@ -9,9 +9,13 @@ use tracing::info;
 use crate::{
     error::{ServiceError, ServiceResult},
     model::user::{
-        add_user, get_user_by_name, OpenApiGetUserResponse, OpenApiNewUserRequest, User,
+        add_user, get_user_by_name, OpenApiGetUserResponse, OpenApiNewUserRequest,
+        OpenApiValidateUserResponse, User,
     },
+    router::utils::SESSION_USER_ID,
 };
+
+use super::utils::{get_current_user_id, get_req_path};
 
 pub struct UserValidator;
 
@@ -19,7 +23,7 @@ impl BasicAuthValidator for UserValidator {
     async fn validate(&self, username: &str, password: &str, depot: &mut Depot) -> bool {
         if let Ok(Some(user)) = get_user_by_name(username) {
             if user.password == password {
-                depot.insert("current_user_id", user.id);
+                depot.insert(SESSION_USER_ID, user.id);
                 return true;
             }
         }
@@ -28,8 +32,12 @@ impl BasicAuthValidator for UserValidator {
 }
 
 pub fn router() -> Router {
-    let non_auth_router = Router::new().post(new_user);
-    let auth_router = Router::with_path("<name>").get(get_user);
+    let non_auth_router = Router::new()
+        .post(new_user)
+        .push(Router::with_path("validate-name/<name>").get(validate_user_name));
+    let auth_router = Router::new()
+        .push(Router::with_path("<name>").get(get_user))
+        .push(Router::with_path("validate-login").post(validate_login));
     Router::new()
         .push(non_auth_router)
         .push(Router::with_hoop(BasicAuth::new(UserValidator)).push(auth_router))
@@ -52,15 +60,27 @@ async fn new_user(request: &mut Request, response: &mut Response) -> ServiceResu
 }
 
 #[handler]
+async fn validate_user_name(request: &mut Request) -> ServiceResult<OpenApiValidateUserResponse> {
+    let name = get_req_path(request, "name")?;
+    match get_user_by_name(&name)? {
+        Some(_) => Ok(OpenApiValidateUserResponse { exist: true }),
+        None => Ok(OpenApiValidateUserResponse { exist: false }),
+    }
+}
+
+#[handler]
+async fn validate_login(response: &mut Response, depot: &mut Depot) -> ServiceResult<()> {
+    // todo maybe some more check
+    let _current_user_id = get_current_user_id(depot)?;
+    response.status_code(StatusCode::OK);
+    Ok(())
+}
+
+#[handler]
 async fn get_user(request: &mut Request) -> ServiceResult<OpenApiGetUserResponse> {
-    let name = request
-        .params()
-        .get("name")
-        .ok_or(ServiceError::InternalServerError(
-            "user name not found".to_owned(),
-        ))?;
+    let name = get_req_path(request, "name")?;
     let user =
-        get_user_by_name(name)?.ok_or(ServiceError::NotFound("user not found".to_string()))?;
+        get_user_by_name(&name)?.ok_or(ServiceError::NotFound("user not found".to_string()))?;
     Ok(OpenApiGetUserResponse {
         id: user.id,
         name: user.name,

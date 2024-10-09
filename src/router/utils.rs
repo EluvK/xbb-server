@@ -2,9 +2,11 @@ use salvo::{Depot, Request};
 
 use crate::error::{ServiceError, ServiceResult};
 
+pub const SESSION_USER_ID: &str = "current_user_id";
+
 pub fn get_current_user_id(depot: &mut Depot) -> ServiceResult<&String> {
     depot
-        .get::<String>("current_user_id")
+        .get::<String>(SESSION_USER_ID)
         .map_err(|err| ServiceError::InternalServerError(format!("{err:?}")))
 }
 

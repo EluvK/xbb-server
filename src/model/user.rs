@@ -83,6 +83,17 @@ impl Scribe for OpenApiGetUserResponse {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct OpenApiValidateUserResponse {
+    pub exist: bool,
+}
+
+impl Scribe for OpenApiValidateUserResponse {
+    fn render(self, res: &mut salvo::Response) {
+        res.render(Json(&self));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]

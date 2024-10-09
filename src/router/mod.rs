@@ -1,4 +1,4 @@
-use salvo::{basic_auth::BasicAuth, Router};
+use salvo::{basic_auth::BasicAuth, handler, http::StatusCode, Response, Router};
 
 mod post;
 mod repo;
@@ -10,5 +10,15 @@ pub fn router() -> Router {
         .push(Router::with_path("repo").push(repo::router()))
         .push(Router::with_path("repo/<repo_id>/post").push(post::router()));
     let user_router = Router::with_path("user").push(user::router());
-    Router::new().push(function_router).push(user_router)
+    let health_router = Router::with_path("health").get(health);
+    Router::new()
+        .push(function_router)
+        .push(user_router)
+        .push(health_router)
+}
+
+#[handler]
+async fn health(resp: &mut Response) {
+    resp.status_code(StatusCode::OK);
+    resp.render("OK");
 }

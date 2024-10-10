@@ -5,8 +5,8 @@ use thiserror::Error;
 pub enum ServiceError {
     #[error("400, Bad Request")]
     BadRequest(#[from] salvo::http::ParseError),
-    // #[error("401, Unauthorized")]
-    // Unauthorized,
+    #[error("401, Unauthorized")]
+    Unauthorized(String),
     #[error("403, Forbidden")]
     Forbidden(String),
     #[error("404, Not Found, {0}")]
@@ -28,10 +28,10 @@ impl Writer for ServiceError {
                 res.status_code(salvo::http::StatusCode::BAD_REQUEST);
                 res.render(Text::Json(format!("{{\"error\": \"{}\"}}", err)));
             }
-            // ServiceError::Unauthorized => {
-            //     res.status_code(salvo::http::StatusCode::UNAUTHORIZED);
-            //     res.render(Text::Plain("401, Unauthorized"));
-            // }
+            ServiceError::Unauthorized(err) => {
+                res.status_code(salvo::http::StatusCode::UNAUTHORIZED);
+                res.render(Text::Plain(format!("401, Unauthorized, {}", err)));
+            }
             ServiceError::Forbidden(err) => {
                 res.status_code(salvo::http::StatusCode::FORBIDDEN);
                 res.render(Text::Plain(format!("403, Forbidden, {}", err)));

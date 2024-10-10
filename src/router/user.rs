@@ -33,31 +33,28 @@ impl BasicAuthValidator for UserValidator {
 
 pub fn router() -> Router {
     let non_auth_router = Router::new()
-        .post(new_user)
-        .push(Router::with_path("validate-name/<name>").get(validate_user_name));
-    let auth_router = Router::new()
-        .push(Router::with_path("<name>").get(get_user))
+        // .post(new_user)
+        .push(Router::with_path("validate-name/<name>").get(validate_user_name))
         .push(Router::with_path("validate-login").post(validate_login));
+    let auth_router = Router::new().push(Router::with_path("<name>").get(get_user));
     Router::new()
         .push(non_auth_router)
         .push(Router::with_hoop(BasicAuth::new(UserValidator)).push(auth_router))
 }
 
-#[handler]
-async fn new_user(request: &mut Request, response: &mut Response) -> ServiceResult<()> {
-    let req = request.parse_body::<OpenApiNewUserRequest>().await?;
-    print!("new user req: {:?}", req);
-    info!("new user {req:?}");
-
-    if let Ok(Some(_)) = get_user_by_name(&req.name) {
-        return Err(ServiceError::Conflict("user already exists".to_string()));
-    }
-    let user = User::new(req.name, req.password);
-    add_user(&user)?;
-
-    response.status_code(StatusCode::CREATED);
-    Ok(())
-}
+// #[handler]
+// async fn new_user(request: &mut Request, response: &mut Response) -> ServiceResult<()> {
+//     let req = request.parse_body::<OpenApiNewUserRequest>().await?;
+//     print!("new user req: {:?}", req);
+//     info!("new user {req:?}");
+//     if let Ok(Some(_)) = get_user_by_name(&req.name) {
+//         return Err(ServiceError::Conflict("user already exists".to_string()));
+//     }
+//     let user = User::new(req.name, req.password);
+//     add_user(&user)?;
+//     response.status_code(StatusCode::CREATED);
+//     Ok(())
+// }
 
 #[handler]
 async fn validate_user_name(request: &mut Request) -> ServiceResult<OpenApiValidateUserResponse> {
@@ -68,11 +65,26 @@ async fn validate_user_name(request: &mut Request) -> ServiceResult<OpenApiValid
     }
 }
 
+/// login if user exist, or register a new one.
 #[handler]
-async fn validate_login(response: &mut Response, depot: &mut Depot) -> ServiceResult<()> {
-    // todo maybe some more check
-    let _current_user_id = get_current_user_id(depot)?;
-    response.status_code(StatusCode::OK);
+async fn validate_login(request: &mut Request, response: &mut Response) -> ServiceResult<()> {
+    let req = request.parse_body::<OpenApiNewUserRequest>().await?;
+    match get_user_by_name(&req.name)? {
+        Some(exist_user) => {
+            if req.password == exist_user.password {
+                response.status_code(StatusCode::OK);
+            } else {
+                return Err(ServiceError::Unauthorized(
+                    "password not correct".to_string(),
+                ));
+            }
+        }
+        None => {
+            let user = User::new(req.name, req.password);
+            add_user(&user)?;
+            response.status_code(StatusCode::CREATED);
+        }
+    };
     Ok(())
 }
 

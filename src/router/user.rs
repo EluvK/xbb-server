@@ -85,6 +85,7 @@ async fn validate_login(request: &mut Request, response: &mut Response) -> Servi
             response.status_code(StatusCode::CREATED);
         }
     };
+    response.render("");
     Ok(())
 }
 

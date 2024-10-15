@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS "repo" (
 );
 CREATE TABLE IF NOT EXISTS "post" (
     "id" TEXT PRIMARY KEY,
+    "category" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "created_at" TEXT NOT NULL,

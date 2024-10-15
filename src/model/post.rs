@@ -12,6 +12,7 @@ use crate::{
 pub struct Post {
     pub id: String,
     pub title: String,
+    pub category: String,
     pub content: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -20,13 +21,14 @@ pub struct Post {
 }
 
 impl Post {
-    pub fn new(title: String, content: String, author: String, repo_id: String) -> Self {
+    pub fn from_new_request(req: OpenApiNewPostRequest, author: String, repo_id: String) -> Self {
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
-            title,
-            content,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            id: req.id,
+            title: req.title,
+            category: req.category,
+            content: req.content,
+            created_at: req.create_at,
+            updated_at: req.create_at,
             author,
             repo_id,
         }
@@ -36,10 +38,11 @@ impl Post {
 pub fn add_post(post: &Post) -> ServiceResult<()> {
     let conn = new_conn()?;
     conn.execute(
-        "INSERT INTO post (id, title, content, created_at, updated_at, author, repo_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        "INSERT INTO post (id, title, category, content, created_at, updated_at, author, repo_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             post.id,
             post.title,
+            post.category,
             post.content,
             post.created_at,
             post.updated_at,
@@ -59,11 +62,12 @@ pub fn list_posts_by_repo_id(repo_id: &str) -> ServiceResult<Vec<Post>> {
         let post = Post {
             id: row.get(0)?,
             title: row.get(1)?,
-            content: row.get(2)?,
-            created_at: row.get(3)?,
-            updated_at: row.get(4)?,
-            author: row.get(5)?,
-            repo_id: row.get(6)?,
+            category: row.get(2)?,
+            content: row.get(3)?,
+            created_at: row.get(4)?,
+            updated_at: row.get(5)?,
+            author: row.get(6)?,
+            repo_id: row.get(7)?,
         };
         posts.push(post);
     }
@@ -80,11 +84,12 @@ pub fn get_post_by_id(id: &str) -> ServiceResult<Post> {
             let post = Post {
                 id: row.get(0)?,
                 title: row.get(1)?,
-                content: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
-                author: row.get(5)?,
-                repo_id: row.get(6)?,
+                category: row.get(2)?,
+                content: row.get(3)?,
+                created_at: row.get(4)?,
+                updated_at: row.get(5)?,
+                author: row.get(6)?,
+                repo_id: row.get(7)?,
             };
             Ok(post)
         }
@@ -95,8 +100,14 @@ pub fn get_post_by_id(id: &str) -> ServiceResult<Post> {
 pub fn update_post(post: &Post) -> ServiceResult<()> {
     let conn = new_conn()?;
     conn.execute(
-        "UPDATE post SET title = ?1, content = ?2, updated_at = ?3 WHERE id = ?4",
-        params![post.title, post.content, post.updated_at, post.id],
+        "UPDATE post SET title = ?1, category = ?2, content = ?3, updated_at = ?4 WHERE id = ?5",
+        params![
+            post.title,
+            post.category,
+            post.content,
+            post.updated_at,
+            post.id
+        ],
     )?;
     Ok(())
 }
@@ -109,14 +120,18 @@ pub fn erase_post(id: &str) -> ServiceResult<()> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenApiNewPostRequest {
+    pub id: String,
+    pub category: String,
     pub title: String,
     pub content: String,
+    pub create_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenApiGetPostResponse {
     pub id: String,
     pub title: String,
+    pub category: String,
     pub content: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -132,6 +147,7 @@ impl From<Post> for OpenApiGetPostResponse {
         Self {
             id: post.id,
             title: post.title,
+            category: post.category,
             content: post.content,
             created_at: post.created_at,
             updated_at: post.updated_at,

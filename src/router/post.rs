@@ -54,7 +54,7 @@ async fn new_post(req: &mut Request, depot: &mut Depot, resp: &mut Response) -> 
 
     info!("new post for {repo_id}");
     let req = req.parse_body::<OpenApiNewPostRequest>().await?;
-    let post = Post::new(req.title, req.content, current_user_id.clone(), repo_id);
+    let post = Post::from_new_request(req, current_user_id.clone(), repo_id);
     add_post(&post)?;
 
     resp.status_code(StatusCode::CREATED);
@@ -72,6 +72,7 @@ async fn put_post(req: &mut Request, depot: &mut Depot) -> ServiceResult<()> {
     let req = req.parse_body::<OpenApiNewPostRequest>().await?;
     let mut post = get_post_by_id(&post_id)?;
     post.title = req.title;
+    post.category = req.category;
     post.content = req.content;
     post.updated_at = Utc::now();
     update_post(&post)

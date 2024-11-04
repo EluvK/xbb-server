@@ -3,7 +3,10 @@ use rusqlite::params;
 use salvo::{writing::Json, Scribe};
 use serde::{Deserialize, Serialize};
 
-use crate::{db::new_conn, error::{ServiceError, ServiceResult}};
+use crate::{
+    db::new_conn,
+    error::{ServiceError, ServiceResult},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Repo {
@@ -84,6 +87,27 @@ pub fn get_repo_by_name(name: &str) -> ServiceResult<Option<Repo>> {
     }
 }
 
+pub fn get_repo_by_id(repo_id: &str) -> ServiceResult<Option<Repo>> {
+    let conn = new_conn()?;
+    let mut stmt = conn.prepare("SELECT * FROM repo WHERE id = ?1")?;
+    let mut rows = stmt.query(params![repo_id])?;
+    let row = rows.next()?;
+    match row {
+        Some(row) => {
+            let repo = Repo {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                owner: row.get(2)?,
+                description: row.get(3)?,
+                created_at: row.get(4)?,
+                updated_at: row.get(5)?,
+            };
+            Ok(Some(repo))
+        }
+        None => Ok(None),
+    }
+}
+
 pub fn check_repo_owner(repo_id: &str, owner_id: &str) -> ServiceResult<()> {
     let conn = new_conn()?;
     let mut stmt = conn.prepare("SELECT * FROM repo WHERE id = ?1")?;
@@ -105,6 +129,30 @@ pub fn check_repo_owner(repo_id: &str, owner_id: &str) -> ServiceResult<()> {
 pub struct OpenApiNewRepoRequest {
     pub name: String,
     pub description: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenApiSyncRepoRequest {
+    pub id: String,
+    pub name: String,
+    pub owner: String,
+    pub description: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<OpenApiSyncRepoRequest> for Repo {
+    fn from(value: OpenApiSyncRepoRequest) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            owner: value.owner,
+            description: value.description,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

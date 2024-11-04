@@ -20,6 +20,15 @@ pub struct Post {
     pub repo_id: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostSummary {
+    pub id: String,
+    pub title: String,
+    pub category: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 impl Post {
     pub fn from_new_request(req: OpenApiNewPostRequest, author: String, repo_id: String) -> Self {
         Self {
@@ -31,6 +40,18 @@ impl Post {
             updated_at: req.create_at,
             author,
             repo_id,
+        }
+    }
+}
+
+impl From<Post> for PostSummary {
+    fn from(post: Post) -> Self {
+        Self {
+            id: post.id,
+            title: post.title,
+            category: post.category,
+            created_at: post.created_at,
+            updated_at: post.updated_at,
         }
     }
 }

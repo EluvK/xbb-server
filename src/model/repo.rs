@@ -3,10 +3,7 @@ use rusqlite::params;
 use salvo::{writing::Json, Scribe};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    db::new_conn,
-    error::{ServiceError, ServiceResult},
-};
+use crate::{db::new_conn, error::ServiceResult};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Repo {
@@ -16,19 +13,6 @@ pub struct Repo {
     pub description: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-impl Repo {
-    pub fn new(name: String, owner: String, description: String) -> Self {
-        Self {
-            id: uuid::Uuid::new_v4().to_string(),
-            name,
-            owner,
-            description,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        }
-    }
 }
 
 pub fn add_repo(repo: &Repo) -> ServiceResult<()> {
@@ -43,6 +27,15 @@ pub fn add_repo(repo: &Repo) -> ServiceResult<()> {
             repo.created_at,
             repo.updated_at
         ],
+    )?;
+    Ok(())
+}
+
+pub fn update_repo(repo: &Repo) -> ServiceResult<()> {
+    let conn = new_conn()?;
+    conn.execute(
+        "UPDATE repo SET name = ?2, description = ?3, updated_at = ?4 WHERE id = ?1",
+        params![repo.id, repo.name, repo.description, repo.updated_at],
     )?;
     Ok(())
 }
@@ -66,27 +59,6 @@ pub fn list_repos_by_owner_id(owner_id: &str) -> ServiceResult<Vec<Repo>> {
     Ok(repos)
 }
 
-pub fn get_repo_by_name(name: &str) -> ServiceResult<Option<Repo>> {
-    let conn = new_conn()?;
-    let mut stmt = conn.prepare("SELECT * FROM repo WHERE name = ?1")?;
-    let mut rows = stmt.query(params![name])?;
-    let row = rows.next()?;
-    match row {
-        Some(row) => {
-            let repo = Repo {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                owner: row.get(2)?,
-                description: row.get(3)?,
-                created_at: row.get(4)?,
-                updated_at: row.get(5)?,
-            };
-            Ok(Some(repo))
-        }
-        None => Ok(None),
-    }
-}
-
 pub fn get_repo_by_id(repo_id: &str) -> ServiceResult<Option<Repo>> {
     let conn = new_conn()?;
     let mut stmt = conn.prepare("SELECT * FROM repo WHERE id = ?1")?;
@@ -108,32 +80,9 @@ pub fn get_repo_by_id(repo_id: &str) -> ServiceResult<Option<Repo>> {
     }
 }
 
-pub fn check_repo_owner(repo_id: &str, owner_id: &str) -> ServiceResult<()> {
-    let conn = new_conn()?;
-    let mut stmt = conn.prepare("SELECT * FROM repo WHERE id = ?1")?;
-    let mut rows = stmt.query(params![repo_id])?;
-    let row = rows.next()?;
-    match row {
-        Some(row) => {
-            let owner: String = row.get(2)?;
-            if owner != owner_id {
-                return Err(ServiceError::Forbidden("forbidden".to_string()));
-            }
-            Ok(())
-        }
-        None => Err(ServiceError::NotFound("repo not found".to_string())),
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct OpenApiNewRepoRequest {
-    pub name: String,
-    pub description: String,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct OpenApiSyncRepoRequest {
+pub struct OpenApiPushRepoRequest {
     pub id: String,
     pub name: String,
     pub owner: String,
@@ -142,8 +91,8 @@ pub struct OpenApiSyncRepoRequest {
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<OpenApiSyncRepoRequest> for Repo {
-    fn from(value: OpenApiSyncRepoRequest) -> Self {
+impl From<OpenApiPushRepoRequest> for Repo {
+    fn from(value: OpenApiPushRepoRequest) -> Self {
         Self {
             id: value.id,
             name: value.name,

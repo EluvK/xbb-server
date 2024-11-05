@@ -3,10 +3,7 @@ use rusqlite::params;
 use salvo::{writing::Json, Scribe};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    db::new_conn,
-    error::{ServiceError, ServiceResult},
-};
+use crate::{db::new_conn, error::ServiceResult};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Post {
@@ -27,21 +24,6 @@ pub struct PostSummary {
     pub category: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-impl Post {
-    pub fn from_new_request(req: OpenApiNewPostRequest, author: String, repo_id: String) -> Self {
-        Self {
-            id: req.id,
-            title: req.title,
-            category: req.category,
-            content: req.content,
-            created_at: req.create_at,
-            updated_at: req.create_at,
-            author,
-            repo_id,
-        }
-    }
 }
 
 impl From<Post> for PostSummary {
@@ -95,7 +77,7 @@ pub fn list_posts_by_repo_id(repo_id: &str) -> ServiceResult<Vec<Post>> {
     Ok(posts)
 }
 
-pub fn get_post_by_id(id: &str) -> ServiceResult<Post> {
+pub fn get_post_by_id(id: &str) -> ServiceResult<Option<Post>> {
     let conn = new_conn()?;
     let mut stmt = conn.prepare("SELECT * FROM post WHERE id = ?1")?;
     let mut rows = stmt.query(params![id])?;
@@ -112,21 +94,22 @@ pub fn get_post_by_id(id: &str) -> ServiceResult<Post> {
                 author: row.get(6)?,
                 repo_id: row.get(7)?,
             };
-            Ok(post)
+            Ok(Some(post))
         }
-        None => Err(ServiceError::NotFound(format!("post {} not found", id))),
+        None => Ok(None),
     }
 }
 
 pub fn update_post(post: &Post) -> ServiceResult<()> {
     let conn = new_conn()?;
     conn.execute(
-        "UPDATE post SET title = ?1, category = ?2, content = ?3, updated_at = ?4 WHERE id = ?5",
+        "UPDATE post SET title = ?1, category = ?2, content = ?3, updated_at = ?4, repo_id = ?5 WHERE id = ?6",
         params![
             post.title,
             post.category,
             post.content,
             post.updated_at,
+            post.repo_id,
             post.id
         ],
     )?;
@@ -140,12 +123,31 @@ pub fn erase_post(id: &str) -> ServiceResult<()> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OpenApiNewPostRequest {
+#[serde(rename_all = "camelCase")]
+pub struct OpenApiPushPostRequest {
     pub id: String,
     pub category: String,
     pub title: String,
     pub content: String,
-    pub create_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub author: String,
+    pub repo_id: String,
+}
+
+impl From<OpenApiPushPostRequest> for Post {
+    fn from(value: OpenApiPushPostRequest) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            category: value.category,
+            content: value.content,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            author: value.author,
+            repo_id: value.repo_id,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

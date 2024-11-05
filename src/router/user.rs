@@ -4,7 +4,6 @@ use salvo::{
     http::StatusCode,
     Depot, Request, Response, Router,
 };
-use tracing::info;
 
 use crate::{
     error::{ServiceError, ServiceResult},
@@ -15,7 +14,7 @@ use crate::{
     router::utils::SESSION_USER_ID,
 };
 
-use super::utils::{get_current_user_id, get_req_path};
+use super::utils::get_req_path;
 
 pub struct UserValidator;
 

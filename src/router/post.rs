@@ -1,24 +1,22 @@
-use chrono::Utc;
 use salvo::{handler, http::StatusCode, Depot, Request, Response, Router};
 use tracing::info;
 
 use crate::{
-    error::ServiceResult,
+    error::{ServiceError, ServiceResult},
     model::{
         post::{
             add_post, erase_post, get_post_by_id, list_posts_by_repo_id, update_post,
-            OpenApiGetPostResponse, OpenApiListPostResponse, OpenApiNewPostRequest, Post,
+            OpenApiGetPostResponse, OpenApiListPostResponse, OpenApiPushPostRequest, Post,
         },
-        repo::check_repo_owner,
+        repo::get_repo_by_id,
     },
     router::utils::{get_current_user_id, get_req_path},
 };
 
 pub fn router() -> Router {
-    Router::new().get(list_post).post(new_post).push(
+    Router::new().get(list_post).post(push_post).push(
         Router::with_path("<post_id>")
             .get(get_post)
-            .put(put_post)
             .delete(delete_post),
     )
 }
@@ -43,48 +41,73 @@ async fn get_post(req: &mut Request, depot: &mut Depot) -> ServiceResult<OpenApi
     let post_id = get_req_path(req, "post_id")?;
     check_repo_owner(&repo_id, current_user_id)?;
     let post = get_post_by_id(&post_id)?;
-    Ok(post.into())
+    match post {
+        Some(post) => Ok(post.into()),
+        None => Err(ServiceError::NotFound("post not found".to_owned())),
+    }
 }
 
 #[handler]
-async fn new_post(req: &mut Request, depot: &mut Depot, resp: &mut Response) -> ServiceResult<()> {
+async fn push_post(
+    request: &mut Request,
+    response: &mut Response,
+    depot: &mut Depot,
+) -> ServiceResult<()> {
+    info!("push post");
     let current_user_id = get_current_user_id(depot)?;
-    let repo_id = get_req_path(req, "repo_id")?;
-    check_repo_owner(&repo_id, current_user_id)?;
-
-    info!("new post for {repo_id}");
-    let req = req.parse_body::<OpenApiNewPostRequest>().await?;
-    let post = Post::from_new_request(req, current_user_id.clone(), repo_id);
-    add_post(&post)?;
-
-    resp.status_code(StatusCode::CREATED);
+    let repo_id = get_req_path(request, "repo_id")?;
+    let post: Post = request.parse_body::<OpenApiPushPostRequest>().await?.into();
+    if post.repo_id != *repo_id {
+        return Err(ServiceError::NotFound("repo_id not match".to_owned()));
+    }
+    if get_repo_by_id(&repo_id)?.is_none_or(|repo| repo.owner != *current_user_id) {
+        return Err(ServiceError::Forbidden("auth failed".to_owned()));
+    }
+    match get_post_by_id(&post.id)? {
+        Some(_old_post) => {
+            info!("update post {}", post.id);
+            update_post(&post)?;
+            response.status_code(StatusCode::OK);
+        }
+        None => {
+            info!("add post {}", post.id);
+            add_post(&post)?;
+            response.status_code(StatusCode::CREATED);
+        }
+    }
     Ok(())
 }
 
 #[handler]
-async fn put_post(req: &mut Request, depot: &mut Depot) -> ServiceResult<()> {
+async fn delete_post(
+    req: &mut Request,
+    response: &mut Response,
+    depot: &mut Depot,
+) -> ServiceResult<()> {
+    info!("delete post");
     let current_user_id = get_current_user_id(depot)?;
     let repo_id = get_req_path(req, "repo_id")?;
-    let post_id = get_req_path(req, "post_id")?;
     check_repo_owner(&repo_id, current_user_id)?;
 
-    info!("update post {post_id}");
-    let req = req.parse_body::<OpenApiNewPostRequest>().await?;
-    let mut post = get_post_by_id(&post_id)?;
-    post.title = req.title;
-    post.category = req.category;
-    post.content = req.content;
-    post.updated_at = Utc::now();
-    update_post(&post)
+    let post_id = get_req_path(req, "post_id")?;
+    let post = get_post_by_id(&post_id)?;
+    let Some(post) = post else {
+        return Err(ServiceError::NotFound("post not found".to_owned()));
+    };
+
+    info!("do delete post {post_id}");
+    erase_post(&post.id)?;
+    response.status_code(StatusCode::NO_CONTENT);
+    Ok(())
 }
 
-#[handler]
-async fn delete_post(req: &mut Request, depot: &mut Depot) -> ServiceResult<()> {
-    let current_user_id = get_current_user_id(depot)?;
-    let repo_id = get_req_path(req, "repo_id")?;
-    let post_id = get_req_path(req, "post_id")?;
-    check_repo_owner(&repo_id, current_user_id)?;
-
-    info!("delete post {post_id}");
-    erase_post(&post_id)
+fn check_repo_owner(repo_id: &str, current_user_id: &str) -> ServiceResult<()> {
+    let repo = get_repo_by_id(repo_id)?;
+    let Some(repo) = repo else {
+        return Err(ServiceError::NotFound("repo not found".to_owned()));
+    };
+    if repo.owner != *current_user_id {
+        return Err(ServiceError::Forbidden("forbidden".to_owned()));
+    }
+    Ok(())
 }

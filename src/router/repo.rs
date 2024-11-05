@@ -1,11 +1,15 @@
-use salvo::{handler, Depot, Request, Response, Router};
+use salvo::{handler, http::StatusCode, Depot, Request, Response, Router};
 use tracing::info;
 
 use crate::{
     error::{ServiceError, ServiceResult},
-    model::repo::{
-        add_repo, get_repo_by_name, list_repos_by_owner_id, OpenApiGetRepoResponse,
-        OpenApiListRepoResponse, OpenApiNewRepoRequest, Repo,
+    model::{
+        post::list_posts_by_repo_id,
+        repo::{
+            add_repo, get_repo_by_id, list_repos_by_owner_id, update_repo, OpenApiGetRepoResponse,
+            OpenApiListRepoResponse, OpenApiPushRepoRequest, Repo,
+        },
+        sync::OpenApiGetRepoSyncInfoResponse,
     },
     router::utils::{get_current_user_id, get_req_path},
 };
@@ -13,8 +17,9 @@ use crate::{
 pub fn router() -> Router {
     Router::new()
         .get(list_repo)
-        .post(new_repo)
+        .post(push_repo)
         .push(Router::with_path("<repo_id>").get(get_repo))
+        .push(Router::with_path("<repo_id>/summary").get(repo_summary))
 }
 
 #[handler]
@@ -41,24 +46,52 @@ async fn get_repo(req: &mut Request, depot: &mut Depot) -> ServiceResult<OpenApi
 }
 
 #[handler]
-async fn new_repo(
+async fn push_repo(
     request: &mut Request,
     response: &mut Response,
     depot: &mut Depot,
 ) -> ServiceResult<OpenApiGetRepoResponse> {
-    info!("new repo");
+    info!("push repo");
     let current_user_id = get_current_user_id(depot)?;
-    let req = request.parse_body::<OpenApiNewRepoRequest>().await?;
-    info!("new repo {req:?}");
-
-    if let Some(_repo) = get_repo_by_name(req.name.as_str())? {
-        return Err(ServiceError::Conflict("repo already exists".to_string()));
+    let repo: Repo = request.parse_body::<OpenApiPushRepoRequest>().await?.into();
+    info!("repo: {:?}", repo);
+    if *current_user_id != repo.owner {
+        return Err(ServiceError::Forbidden("auth failed".to_owned()));
     }
-
-    // insert new repo
-    let repo = Repo::new(req.name, current_user_id.clone(), req.description);
-    add_repo(&repo)?;
-
-    response.status_code(salvo::http::StatusCode::CREATED);
+    match get_repo_by_id(&repo.id)? {
+        Some(_old_repo) => {
+            if *current_user_id != _old_repo.owner {
+                return Err(ServiceError::Forbidden("auth failed".to_owned()));
+            }
+            info!("update repo");
+            update_repo(&repo)?;
+            response.status_code(StatusCode::OK);
+        }
+        None => {
+            info!("add repo");
+            add_repo(&repo)?;
+            response.status_code(StatusCode::CREATED);
+        }
+    }
     Ok(repo.into())
+}
+
+#[handler]
+async fn repo_summary(
+    request: &mut Request,
+    _response: &mut Response,
+    depot: &mut Depot,
+) -> ServiceResult<OpenApiGetRepoSyncInfoResponse> {
+    info!("get repo info");
+    let _current_user_id = get_current_user_id(depot)?;
+    let repo_id = get_req_path(request, "repo_id")?;
+    let repo = get_repo_by_id(&repo_id)?;
+    // todo check permission maybe?
+    match repo {
+        Some(repo) => {
+            let posts = list_posts_by_repo_id(&repo_id)?;
+            Ok(OpenApiGetRepoSyncInfoResponse::new(repo, posts))
+        }
+        None => Err(ServiceError::NotFound(format!("repo {repo_id} not found"))),
+    }
 }

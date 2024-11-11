@@ -26,3 +26,8 @@ impl Scribe for OpenApiGetRepoSyncInfoResponse {
         res.render(Json(&self));
     }
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct OpenApiSubscribeLinkRequest {
+    pub link: String,
+}

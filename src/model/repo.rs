@@ -105,6 +105,7 @@ impl From<OpenApiPushRepoRequest> for Repo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OpenApiGetRepoResponse {
     pub id: String,
     pub name: String,

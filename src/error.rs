@@ -4,7 +4,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum ServiceError {
     #[error("400, Bad Request")]
-    BadRequest(#[from] salvo::http::ParseError),
+    BadRequest(String),
     #[error("401, Unauthorized")]
     Unauthorized(String),
     #[error("403, Forbidden")]
@@ -55,5 +55,11 @@ impl Writer for ServiceError {
 impl From<rusqlite::Error> for ServiceError {
     fn from(err: rusqlite::Error) -> Self {
         ServiceError::InternalServerError(err.to_string())
+    }
+}
+
+impl From<salvo::http::ParseError> for ServiceError {
+    fn from(err: salvo::http::ParseError) -> Self {
+        ServiceError::BadRequest(err.to_string())
     }
 }

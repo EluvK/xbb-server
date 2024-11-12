@@ -28,4 +28,11 @@ CREATE TABLE IF NOT EXISTS "post" (
     FOREIGN KEY("author") REFERENCES "user"("id"),
     FOREIGN KEY("repo_id") REFERENCES "repo"("id")
 );
+CREATE TABLE IF NOT EXISTS "subscribe" (
+    "id" TEXT PRIMARY KEY,
+    "user_id" TEXT NOT NULL,
+    "repo_id" TEXT NOT NULL,
+    FOREIGN KEY("user_id") REFERENCES "user"("id"),
+    FOREIGN KEY("repo_id") REFERENCES "repo"("id")
+);
 COMMIT;

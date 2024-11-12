@@ -9,6 +9,7 @@ use crate::{
             OpenApiGetPostResponse, OpenApiListPostResponse, OpenApiPushPostRequest, Post,
         },
         repo::get_repo_by_id,
+        subscribe::check_subscribe,
     },
     router::utils::{get_current_user_id, get_req_path},
 };
@@ -25,7 +26,8 @@ pub fn router() -> Router {
 async fn list_post(req: &mut Request, depot: &mut Depot) -> ServiceResult<OpenApiListPostResponse> {
     let current_user_id = get_current_user_id(depot)?;
     let repo_id = get_req_path(req, "repo_id")?;
-    check_repo_owner(&repo_id, current_user_id)?;
+
+    check_owner_or_subscribe(&repo_id, current_user_id)?;
     info!("list post {repo_id}");
 
     let post = list_posts_by_repo_id(repo_id.as_str())?;
@@ -39,7 +41,7 @@ async fn get_post(req: &mut Request, depot: &mut Depot) -> ServiceResult<OpenApi
     let current_user_id = get_current_user_id(depot)?;
     let repo_id = get_req_path(req, "repo_id")?;
     let post_id = get_req_path(req, "post_id")?;
-    check_repo_owner(&repo_id, current_user_id)?;
+    check_owner_or_subscribe(&repo_id, current_user_id)?;
     let post = get_post_by_id(&post_id)?;
     match post {
         Some(post) => Ok(post.into()),
@@ -110,4 +112,14 @@ fn check_repo_owner(repo_id: &str, current_user_id: &str) -> ServiceResult<()> {
         return Err(ServiceError::Forbidden("forbidden".to_owned()));
     }
     Ok(())
+}
+
+fn check_owner_or_subscribe(repo_id: &str, current_user_id: &str) -> ServiceResult<()> {
+    match (
+        check_subscribe(&current_user_id, &repo_id)?,
+        check_repo_owner(&repo_id, current_user_id),
+    ) {
+        (true, _) | (false, Ok(())) => Ok(()),
+        (_, Err(e)) => Err(e),
+    }
 }

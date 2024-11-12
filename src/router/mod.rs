@@ -10,7 +10,7 @@ pub fn router() -> Router {
     let function_router = Router::with_hoop(BasicAuth::new(user::UserValidator))
         .push(Router::with_path("repo").push(repo::router()))
         .push(Router::with_path("repo/<repo_id>/post").push(post::router()))
-        .push(subscribe::router());
+        .push(Router::with_path("subscribe").push(subscribe::router()));
     let user_router = Router::with_path("user").push(user::router());
     let health_router = Router::with_path("health").get(health);
     Router::new()

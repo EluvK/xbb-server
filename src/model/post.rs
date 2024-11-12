@@ -151,6 +151,7 @@ impl From<OpenApiPushPostRequest> for Post {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OpenApiGetPostResponse {
     pub id: String,
     pub title: String,
@@ -163,7 +164,16 @@ pub struct OpenApiGetPostResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct OpenApiListPostResponse(pub Vec<OpenApiGetPostResponse>);
+#[serde(rename_all = "camelCase")]
+pub struct OpenApiPostSummaryResponse {
+    pub id: String,
+    pub title: String,
+    pub category: String,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OpenApiListPostResponse(pub Vec<OpenApiPostSummaryResponse>);
 
 impl From<Post> for OpenApiGetPostResponse {
     fn from(post: Post) -> Self {
@@ -176,6 +186,17 @@ impl From<Post> for OpenApiGetPostResponse {
             updated_at: post.updated_at,
             author: post.author,
             repo_id: post.repo_id,
+        }
+    }
+}
+
+impl From<Post> for OpenApiPostSummaryResponse {
+    fn from(value: Post) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            category: value.category,
+            updated_at: value.updated_at,
         }
     }
 }

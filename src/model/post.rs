@@ -58,7 +58,7 @@ pub fn add_post(post: &Post) -> ServiceResult<()> {
 
 pub fn list_posts_by_repo_id(repo_id: &str) -> ServiceResult<Vec<Post>> {
     let conn = new_conn()?;
-    let mut stmt = conn.prepare("SELECT * FROM post WHERE repo_id = ?1")?;
+    let mut stmt = conn.prepare("SELECT id, title, category, content, created_at, updated_at, author, repo_id FROM post WHERE repo_id = ?1")?;
     let mut rows = stmt.query(params![repo_id])?;
     let mut posts = Vec::new();
     while let Some(row) = rows.next()? {
@@ -79,7 +79,7 @@ pub fn list_posts_by_repo_id(repo_id: &str) -> ServiceResult<Vec<Post>> {
 
 pub fn get_post_by_id(id: &str) -> ServiceResult<Option<Post>> {
     let conn = new_conn()?;
-    let mut stmt = conn.prepare("SELECT * FROM post WHERE id = ?1")?;
+    let mut stmt = conn.prepare("SELECT id, title, category, content, created_at, updated_at, author, repo_id FROM post WHERE id = ?1")?;
     let mut rows = stmt.query(params![id])?;
     let row = rows.next()?;
     match row {

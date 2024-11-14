@@ -45,7 +45,7 @@ pub fn add_user(user: &User) -> ServiceResult<()> {
 
 pub fn get_user_by_name(name: &str) -> ServiceResult<Option<User>> {
     let conn = new_conn()?;
-    let mut stmt = conn.prepare("SELECT * FROM user WHERE name = ?1")?;
+    let mut stmt = conn.prepare("SELECT id, name, created_at, updated_at, password, avatar_url FROM user WHERE name = ?1")?;
     let mut rows = stmt.query(params![name])?;
     let row = rows.next()?;
     match row {

@@ -28,9 +28,10 @@ async fn list_post(req: &mut Request, depot: &mut Depot) -> ServiceResult<OpenAp
     let repo_id = get_req_path(req, "repo_id")?;
 
     check_owner_or_subscribe(&repo_id, current_user_id)?;
-    info!("list post {repo_id}");
+    info!("list post in repo {repo_id}");
 
     let post = list_posts_by_repo_id(repo_id.as_str())?;
+    info!("list post result: {post:?}");
     Ok(OpenApiListPostResponse(
         post.into_iter().map(|post| post.into()).collect(),
     ))
@@ -43,6 +44,7 @@ async fn get_post(req: &mut Request, depot: &mut Depot) -> ServiceResult<OpenApi
     let post_id = get_req_path(req, "post_id")?;
     check_owner_or_subscribe(&repo_id, current_user_id)?;
     let post = get_post_by_id(&post_id)?;
+    info!("get post {post:?}");
     match post {
         Some(post) => Ok(post.into()),
         None => Err(ServiceError::NotFound("post not found".to_owned())),

@@ -91,7 +91,7 @@ pub fn update_repo(repo: &Repo) -> ServiceResult<()> {
 
 pub fn list_repos_by_owner_id(owner_id: &str) -> ServiceResult<Vec<Repo>> {
     let conn = new_conn()?;
-    let mut stmt = conn.prepare("SELECT * FROM repo WHERE owner = ?1")?;
+    let mut stmt = conn.prepare("SELECT id, name, owner, description, created_at, updated_at, status FROM repo WHERE owner = ?1")?;
     let mut rows = stmt.query(params![owner_id])?;
     let mut repos = Vec::new();
     while let Some(row) = rows.next()? {
@@ -113,7 +113,7 @@ pub fn list_repos_by_owner_id(owner_id: &str) -> ServiceResult<Vec<Repo>> {
 
 pub fn get_repo_by_id(repo_id: &str) -> ServiceResult<Option<Repo>> {
     let conn = new_conn()?;
-    let mut stmt = conn.prepare("SELECT * FROM repo WHERE id = ?1")?;
+    let mut stmt = conn.prepare("SELECT id, name, owner, description, created_at, updated_at, status FROM repo WHERE id = ?1")?;
     let mut rows = stmt.query(params![repo_id])?;
     let row = rows.next()?;
     match row {

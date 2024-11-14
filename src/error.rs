@@ -46,6 +46,7 @@ impl Writer for ServiceError {
             }
             ServiceError::InternalServerError(err) => {
                 res.status_code(salvo::http::StatusCode::INTERNAL_SERVER_ERROR);
+                tracing::error!("InternalServerError: {}", err);
                 res.render(Text::Plain(format!("500, Internal Server Error, {}", err)));
             }
         }

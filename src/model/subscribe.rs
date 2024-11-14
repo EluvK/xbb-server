@@ -22,7 +22,7 @@ pub fn check_subscribe(user_id: &str, repo_id: &str) -> ServiceResult<bool> {
 
 pub fn fetch_subscribe(user_id: &str) -> ServiceResult<Vec<String>> {
     let conn = new_conn()?;
-    let mut stmt = conn.prepare("SELECT * FROM subscribe WHERE user_id = ?1")?;
+    let mut stmt = conn.prepare("SELECT repo_id FROM subscribe WHERE user_id = ?1")?;
     let mut rows = stmt.query(params![user_id])?;
     let mut repos = Vec::new();
     while let Some(row) = rows.next()? {

@@ -116,8 +116,8 @@ fn check_repo_owner(repo_id: &str, current_user_id: &str) -> ServiceResult<()> {
 
 fn check_owner_or_subscribe(repo_id: &str, current_user_id: &str) -> ServiceResult<()> {
     match (
-        check_subscribe(&current_user_id, &repo_id)?,
-        check_repo_owner(&repo_id, current_user_id),
+        check_subscribe(current_user_id, repo_id)?,
+        check_repo_owner(repo_id, current_user_id),
     ) {
         (true, _) | (false, Ok(())) => Ok(()),
         (_, Err(e)) => Err(e),

@@ -37,8 +37,8 @@ async fn new_subscribe(
         }
         None => Err(ServiceError::NotFound(format!("repo {repo_id} not found"))),
         Some(repo) => {
-            if !check_subscribe(&current_user_id, &repo_id)? {
-                add_subscribe(&current_user_id, &repo_id)?;
+            if !check_subscribe(current_user_id, &repo_id)? {
+                add_subscribe(current_user_id, &repo_id)?;
             }
             return Ok(repo.into());
         }
@@ -48,7 +48,7 @@ async fn new_subscribe(
 #[handler]
 async fn list_subscribe(depot: &mut Depot) -> ServiceResult<OpenApiListRepoResponse> {
     let current_user_id = get_current_user_id(depot)?;
-    let repo_ids = fetch_subscribe(&current_user_id)?;
+    let repo_ids = fetch_subscribe(current_user_id)?;
     let mut repos = Vec::new();
     for repo_id in repo_ids {
         if let Some(repo) = get_repo_by_id(&repo_id)? {

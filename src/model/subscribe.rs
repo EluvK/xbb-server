@@ -26,7 +26,7 @@ pub fn fetch_subscribe(user_id: &str) -> ServiceResult<Vec<String>> {
     let mut rows = stmt.query(params![user_id])?;
     let mut repos = Vec::new();
     while let Some(row) = rows.next()? {
-        repos.push(row.get(2)?);
+        repos.push(row.get(0)?);
     }
     Ok(repos)
 }

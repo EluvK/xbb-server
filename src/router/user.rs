@@ -20,11 +20,13 @@ use super::utils::get_req_path;
 pub struct UserValidator;
 
 impl BasicAuthValidator for UserValidator {
-    async fn validate(&self, username: &str, password: &str, depot: &mut Depot) -> bool {
-        if let Ok(Some(user)) = get_user_by_name(username) {
-            if user.password == password {
-                depot.insert(SESSION_USER_ID, user.id);
-                return true;
+    async fn validate(&self, user_id_slash_name: &str, password: &str, depot: &mut Depot) -> bool {
+        if let Some((id, name)) = user_id_slash_name.split_once('/') {
+            if let Ok(Some(user)) = get_user_by_id(id) {
+                if user.name == name && user.password == password {
+                    depot.insert(SESSION_USER_ID, user.id);
+                    return true;
+                }
             }
         }
         false

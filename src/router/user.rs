@@ -93,7 +93,7 @@ async fn update_user(request: &mut Request) -> ServiceResult<()> {
     let mut user =
         get_user_by_id(&id)?.ok_or(ServiceError::NotFound("user not found".to_string()))?;
     let req = request.parse_body::<OpenApiUpdateUserRequest>().await?;
-    if get_user_by_name(&req.name)?.is_some() {
+    if get_user_by_name(&req.name)?.is_some_and(|user| user.id != id) {
         return Err(ServiceError::Conflict(format!("name {:?} exist", req.name)));
     }
     user = User {

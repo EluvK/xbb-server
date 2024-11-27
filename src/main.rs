@@ -11,6 +11,7 @@ use salvo::{
         rustls::{Keycert, RustlsConfig},
         TcpListener,
     },
+    logging::Logger,
     prelude::ForceHttps,
     Listener, Server, Service,
 };
@@ -41,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
     let acceptor = TcpListener::new(address).rustls(ssl_config).bind().await;
 
     Server::new(acceptor)
-        .serve(Service::new(router::router()).hoop(ForceHttps::new().https_port(port)))
+        .serve(Service::new(router::router()).hoop(ForceHttps::new().https_port(port)).hoop(Logger::new()))
         .await;
 
     Ok(())

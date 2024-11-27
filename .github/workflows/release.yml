@@ -41,5 +41,7 @@ jobs:
           bin: xbb-server
           # (optional) Target triple, default is host triple.
           target: ${{ matrix.target }}
+          # (optional) Comma-separated list of additional files to be included to archive.
+          include: cert,config.json
           # (required) GitHub token for uploading assets to GitHub Releases.
           token: ${{ secrets.XBBS_GITHUB_TOKEN }}

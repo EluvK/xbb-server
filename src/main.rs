@@ -1,8 +1,8 @@
 mod db;
+mod error;
 mod model;
 mod opt;
 mod router;
-mod error;
 
 use std::path::Path;
 
@@ -42,7 +42,11 @@ async fn main() -> anyhow::Result<()> {
     let acceptor = TcpListener::new(address).rustls(ssl_config).bind().await;
 
     Server::new(acceptor)
-        .serve(Service::new(router::router()).hoop(ForceHttps::new().https_port(port)).hoop(Logger::new()))
+        .serve(
+            Service::new(router::router())
+                .hoop(ForceHttps::new().https_port(port))
+                .hoop(Logger::new()),
+        )
         .await;
 
     Ok(())

@@ -14,5 +14,7 @@ pub fn get_req_path(req: &mut Request, key: &str) -> ServiceResult<String> {
     req.params()
         .get(key)
         .map(|v| v.to_string())
-        .ok_or(ServiceError::InternalServerError(format!("param {key} not found")))
+        .ok_or(ServiceError::InternalServerError(format!(
+            "param {key} not found"
+        )))
 }

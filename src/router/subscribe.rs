@@ -39,7 +39,10 @@ async fn new_subscribe(
         None => Err(ServiceError::NotFound(format!("repo {repo_id} not found"))),
         Some(repo) => {
             if !check_subscribe(current_user_id, &repo_id)? {
-                info!("add subscribe: user_id={}, repo_id={}", current_user_id, repo_id);
+                info!(
+                    "add subscribe: user_id={}, repo_id={}",
+                    current_user_id, repo_id
+                );
                 add_subscribe(current_user_id, &repo_id)?;
             }
             return Ok(repo.into());
@@ -79,7 +82,10 @@ async fn remove_subscribe(
             "not found subscribe info".to_owned(),
         ));
     }
-    info!("delete subscribe: user_id={}, repo_id={}", current_user_id, repo_id);
+    info!(
+        "delete subscribe: user_id={}, repo_id={}",
+        current_user_id, repo_id
+    );
     delete_subscribe(current_user_id, repo_id)?;
     response.status_code(StatusCode::NO_CONTENT);
     Ok(())

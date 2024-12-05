@@ -1,3 +1,6 @@
+// this file is not used anymore.
+// keep it for reference only.
+
 use salvo::{fs::NamedFile, prelude::*, Router};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

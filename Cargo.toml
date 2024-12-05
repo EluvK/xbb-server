@@ -1,6 +1,6 @@
 [package]
 name = "xbb-server"
-version = "0.0.1"
+version = "0.0.3"
 edition = "2021"
 authors = ["eluvk.dev@gmail.com"]
 description = "Server Endpoint for XBB"
@@ -8,6 +8,7 @@ description = "Server Endpoint for XBB"
 [dependencies]
 anyhow = "1.0.89"
 chrono = { version = "0.4.38", features = ["serde"] }
+lazy_static = "1.5.0"
 rusqlite = { version = "0.32.1", features = ["bundled", "chrono"] }
 salvo = { version = "0.72.4", features = ["rustls", "force-https", "basic-auth", "logging"] }
 serde = { version = "1.0.210", features = ["derive"] }

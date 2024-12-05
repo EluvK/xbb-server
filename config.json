@@ -1,4 +1,5 @@
 {
     "cert": "./cert/certificate.crt",
-    "key": "./cert/private.key"
+    "key": "./cert/private.key",
+    "latest_version": "0.0.2"
 }

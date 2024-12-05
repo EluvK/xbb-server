@@ -1,6 +1,6 @@
 use salvo::{basic_auth::BasicAuth, handler, http::StatusCode, Response, Router};
 
-mod file;
+mod version;
 mod post;
 mod repo;
 mod subscribe;
@@ -12,7 +12,7 @@ pub fn router() -> Router {
         .push(Router::with_path("repo").push(repo::router()))
         .push(Router::with_path("repo/<repo_id>/post").push(post::router()))
         .push(Router::with_path("subscribe").push(subscribe::router()))
-        .push(Router::with_path("file").push(file::router()));
+        .push(Router::with_path("version").push(version::router()));
     let user_router = Router::with_path("user").push(user::router());
     let health_router = Router::with_path("health").get(health);
     Router::new()

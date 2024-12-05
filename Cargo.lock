@@ -2480,10 +2480,11 @@ dependencies = [
 
 [[package]]
 name = "xbb-server"
-version = "0.0.1"
+version = "0.0.3"
 dependencies = [
  "anyhow",
  "chrono",
+ "lazy_static",
  "rusqlite",
  "salvo",
  "serde",

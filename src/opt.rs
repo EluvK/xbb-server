@@ -6,4 +6,5 @@ pub struct Config {
     pub cert: String,
     pub key: String,
     pub port: Option<u16>,
+    pub latest_version: String,
 }

@@ -11,23 +11,29 @@ use salvo::{
         rustls::{Keycert, RustlsConfig},
         TcpListener,
     },
+    handler,
     logging::Logger,
     prelude::ForceHttps,
-    Listener, Server, Service,
+    Depot, Listener, Server, Service,
 };
 
 const DEFAULT_PORT: u16 = 15443;
+
+lazy_static::lazy_static! {
+    static ref SERVER_CONFIG: opt::Config = {
+        let opt = std::fs::read_to_string("config.json").expect("cannot read config file");
+        serde_json::from_str::<opt::Config>(&opt).expect("cannot parse config file")
+    };
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // read config.json file
     db::init_db()?;
-    let opt = std::fs::read_to_string("config.json").expect("cannot read config file");
-    let config = serde_json::from_str::<opt::Config>(&opt)?;
+    let config = &SERVER_CONFIG;
 
     // log file
-
-    let log_path_str = config.log_path.unwrap_or("./".into());
+    let log_path_str = config.log_path.as_deref().unwrap_or("./".into());
     let log_path = Path::new(&log_path_str);
     let _g = file_log(log_path, false)?;
 
@@ -43,13 +49,18 @@ async fn main() -> anyhow::Result<()> {
 
     Server::new(acceptor)
         .serve(
-            Service::new(router::router())
+            Service::new(router::router().hoop(set_config))
                 .hoop(ForceHttps::new().https_port(port))
                 .hoop(Logger::new()),
         )
         .await;
 
     Ok(())
+}
+
+#[handler]
+fn set_config(depot: &mut Depot) {
+    depot.insert("ClientVersion", SERVER_CONFIG.latest_version.clone());
 }
 
 fn file_log(path: &Path, enable_debug: bool) -> anyhow::Result<impl Drop> {

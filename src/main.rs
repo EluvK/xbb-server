@@ -33,7 +33,7 @@ async fn main() -> anyhow::Result<()> {
     let config = &SERVER_CONFIG;
 
     // log file
-    let log_path_str = config.log_path.as_deref().unwrap_or("./".into());
+    let log_path_str = config.log_path.as_deref().unwrap_or("./");
     let log_path = Path::new(&log_path_str);
     let _g = file_log(log_path, false)?;
 

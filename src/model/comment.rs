@@ -102,8 +102,6 @@ pub fn update_comment(comment: &Comment) -> ServiceResult<()> {
 #[serde(rename_all = "camelCase")]
 pub struct OpenApiPushCommentRequest {
     pub id: Option<String>, // some for update, none for insert
-    pub post_id: String,
-    pub repo_id: String,
     pub content: String,
     pub parent_id: Option<String>,
 }

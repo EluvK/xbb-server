@@ -64,7 +64,7 @@ async fn push_comment(
     request: &mut Request,
     response: &mut Response,
     depot: &mut Depot,
-) -> ServiceResult<()> {
+) -> ServiceResult<OpenApiGetCommentResponse> {
     info!("push comment");
     let current_user_id = get_current_user_id(depot)?;
     let repo_id = get_req_path(request, "repo_id")?;
@@ -74,18 +74,25 @@ async fn push_comment(
     match comment.id {
         Some(id) => {
             // update
-            let comment = Comment {
-                id,
-                post_id,
-                repo_id,
-                content: comment.content,
-                updated_at: chrono::Utc::now(),
-                created_at: chrono::Utc::now(),
-                author: current_user_id.clone(),
-                parent_id: comment.parent_id,
-            };
-            update_comment(&comment)?;
-            response.status_code(StatusCode::OK);
+            let current_comment = get_comment_by_id(&id)?;
+            match current_comment {
+                None => Err(ServiceError::NotFound("comment not found".to_owned())),
+                Some(current_comment) => {
+                    let updated = Comment {
+                        id,
+                        post_id: current_comment.post_id,
+                        repo_id: current_comment.repo_id,
+                        content: comment.content,
+                        updated_at: chrono::Utc::now(),
+                        created_at: current_comment.created_at,
+                        author: current_user_id.clone(),
+                        parent_id: current_comment.parent_id,
+                    };
+                    update_comment(&updated)?;
+                    response.status_code(StatusCode::OK);
+                    Ok(updated.into())
+                }
+            }
         }
         None => {
             // insert
@@ -101,9 +108,9 @@ async fn push_comment(
             };
             add_comment(&comment)?;
             response.status_code(StatusCode::CREATED);
+            Ok(comment.into())
         }
     }
-    Ok(())
 }
 
 #[handler]

@@ -12,7 +12,7 @@ use crate::{
         add_user, get_user_by_id, get_user_by_name, update_exist_user, OpenApiGetUserResponse,
         OpenApiNewUserRequest, OpenApiUpdateUserRequest, OpenApiValidateUserResponse, User,
     },
-    router::utils::SESSION_USER_ID,
+    router::utils::{get_current_user_id, SESSION_USER_ID},
 };
 
 use super::utils::get_req_path;
@@ -39,7 +39,7 @@ pub fn router() -> Router {
         .push(Router::with_path("validate-name/<name>").get(validate_user_name))
         .push(Router::with_path("validate-login").post(validate_login));
     let auth_router = Router::new()
-        .push(Router::with_path("<name>").get(get_user))
+        .push(Router::new().get(get_user))
         .push(Router::with_path("<id>").put(update_user));
     Router::new()
         .push(non_auth_router)
@@ -108,10 +108,21 @@ async fn update_user(request: &mut Request) -> ServiceResult<()> {
 }
 
 #[handler]
-async fn get_user(request: &mut Request) -> ServiceResult<OpenApiGetUserResponse> {
-    let name = get_req_path(request, "name")?;
-    let user =
-        get_user_by_name(&name)?.ok_or(ServiceError::NotFound("user not found".to_string()))?;
+async fn get_user(
+    request: &mut Request,
+    depot: &mut Depot,
+) -> ServiceResult<OpenApiGetUserResponse> {
+    let current_user_id = get_current_user_id(depot)?;
+    let name: Option<String> = request.query("name");
+    let id: Option<String> = request.query("id");
+    let user = if let Some(id) = id {
+        get_user_by_id(&id)?.ok_or(ServiceError::NotFound("user not found".to_string()))?
+    } else if let Some(name) = name {
+        get_user_by_name(&name)?.ok_or(ServiceError::NotFound("user not found".to_string()))?
+    } else {
+        get_user_by_id(&current_user_id)?
+            .ok_or(ServiceError::NotFound("user not found".to_string()))?
+    };
     Ok(OpenApiGetUserResponse {
         id: user.id,
         name: user.name,

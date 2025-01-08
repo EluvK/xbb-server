@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{db::new_conn, error::ServiceResult};
 
+use super::comment::{Comment, OpenApiCommentSummaryResponse};
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Post {
     pub id: String,
@@ -170,6 +172,19 @@ pub struct OpenApiPostSummaryResponse {
     pub title: String,
     pub category: String,
     pub updated_at: DateTime<Utc>,
+    pub comments: Vec<OpenApiCommentSummaryResponse>,
+}
+
+impl OpenApiPostSummaryResponse {
+    pub fn new(post: Post, comments: Vec<Comment>) -> Self {
+        Self {
+            id: post.id,
+            title: post.title,
+            category: post.category,
+            updated_at: post.updated_at,
+            comments: comments.into_iter().map(Into::into).collect(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -186,17 +201,6 @@ impl From<Post> for OpenApiGetPostResponse {
             updated_at: post.updated_at,
             author: post.author,
             repo_id: post.repo_id,
-        }
-    }
-}
-
-impl From<Post> for OpenApiPostSummaryResponse {
-    fn from(value: Post) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            category: value.category,
-            updated_at: value.updated_at,
         }
     }
 }

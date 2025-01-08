@@ -139,6 +139,31 @@ impl From<Comment> for OpenApiGetCommentResponse {
         }
     }
 }
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenApiCommentSummaryResponse {
+    pub id: String,
+    pub post_id: String,
+    pub repo_id: String,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<Comment> for OpenApiCommentSummaryResponse {
+    fn from(value: Comment) -> Self {
+        Self {
+            id: value.id,
+            post_id: value.post_id,
+            repo_id: value.repo_id,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
+impl Scribe for OpenApiCommentSummaryResponse {
+    fn render(self, res: &mut salvo::Response) {
+        res.render(Json(&self));
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenApiListCommentResponse(pub Vec<OpenApiGetCommentResponse>);

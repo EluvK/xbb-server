@@ -4,9 +4,11 @@ use tracing::info;
 use crate::{
     error::{ServiceError, ServiceResult},
     model::{
+        comment::list_comments_by_post_id,
         post::{
             add_post, erase_post, get_post_by_id, list_posts_by_repo_id, update_post,
-            OpenApiGetPostResponse, OpenApiListPostResponse, OpenApiPushPostRequest, Post,
+            OpenApiGetPostResponse, OpenApiListPostResponse, OpenApiPostSummaryResponse,
+            OpenApiPushPostRequest, Post,
         },
         repo::get_repo_by_id,
     },
@@ -31,11 +33,14 @@ async fn list_post(req: &mut Request, depot: &mut Depot) -> ServiceResult<OpenAp
     check_owner_or_subscribe(&repo_id, current_user_id)?;
     info!("list post in repo {repo_id}");
 
-    let post = list_posts_by_repo_id(repo_id.as_str())?;
+    let posts = list_posts_by_repo_id(repo_id.as_str())?;
     // info!("list post result: {post:?}");
-    Ok(OpenApiListPostResponse(
-        post.into_iter().map(|post| post.into()).collect(),
-    ))
+    let mut result = vec![];
+    for post in posts {
+        let comments = list_comments_by_post_id(&post.id)?;
+        result.push(OpenApiPostSummaryResponse::new(post, comments));
+    }
+    Ok(OpenApiListPostResponse(result))
 }
 
 #[handler]
